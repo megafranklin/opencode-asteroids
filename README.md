@@ -24,11 +24,12 @@ Luego visita `http://localhost:3000`.
 
 ## Controles
 
-| Tecla     | Acción     |
-| --------- | ---------- |
-| `←` `→`   | Rotar nave |
-| `↑`       | Propulsar  |
-| `Espacio` | Disparar   |
+| Tecla     | Acción                  |
+| --------- | ----------------------- |
+| `←` `→`   | Rotar nave              |
+| `↑`       | Propulsar               |
+| `Espacio` | Disparar                |
+| `C`       | Cambiar skin de la nave |
 
 ## Puntuación
 
@@ -47,6 +48,10 @@ Al destruir un asteroide hay una probabilidad (12%) de que suelte un ítem de ve
 
 Cada 8–15 segundos una estrella fugaz dorada entra cruzando desde un borde de la pantalla, mucho más rápida que cualquier asteroide. Permanece 6 segundos antes de desvanecerse (con estela de chispas). Destruirla con una bala otorga 500 puntos; si toca tu nave, la destruye igual que un asteroide.
 
+## Skins
+
+Pulsa `C` en cualquier momento (incluso tras un game over) para rotar entre las 5 skins de la nave: **CLÁSICA**, **CAZA**, **NEÓN**, **RETRO** y **CORSAIR**. Cada una cambia la silueta y el color del casco; la llama del propulsor, las balas y la jugabilidad son idénticas. Tu elección se guarda en el navegador (`localStorage`) y se restaura al recargar.
+
 ## Características
 
 - 3 vidas con invencibilidad temporal al reaparecer (parpadeo)
@@ -54,3 +59,4 @@ Cada 8–15 segundos una estrella fugaz dorada entra cruzando desde un borde de 
 - Partículas de explosión al destruir asteroides
 - Power-up de velocidad: propulsión duplicada durante 5 segundos (llama cian y contador en el HUD)
 - Estrella fugaz: rápida (300 px/s) y fugaz (6 s), 500 puntos al destruirla
+- 5 skins de nave seleccionables con la tecla `C` (persisten entre sesiones)

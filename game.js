@@ -130,6 +130,28 @@ class Asteroid {
   }
 }
 
+// ── Skins de la nave ──────────────────────────────────────────────────────────
+// Solo cambian la silueta y el color del casco (nariz hacia +x); la llama,
+// las balas y la jugabilidad son idénticas para todas.
+const SKINS = [
+  { name: 'CLÁSICA', stroke: '#fff',    fill: null,                      verts: [[20, 0], [-12, -9], [-7, 0], [-12, 9]] },
+  { name: 'CAZA',    stroke: '#39ff14', fill: null,                      verts: [[24, 0], [-8, -4], [-14, -11], [-7, 0], [-14, 11], [-8, 4]] },
+  { name: 'NEÓN',    stroke: '#00d4ff', fill: 'rgba(0, 212, 255, 0.15)',  verts: [[18, 0], [-12, -10], [-3, 0], [-12, 10]] },
+  { name: 'RETRO',   stroke: '#ff9f1c', fill: null,                      verts: [[16, 0], [-10, -12], [-10, 12]] },
+  { name: 'CORSAIR', stroke: '#ff4d6d', fill: null,                      verts: [[22, 0], [-15, -12], [-6, 0], [-15, 12]] },
+];
+
+const SKIN_KEY     = 'asteroids-skin';  // clave de persistencia en localStorage
+const SKIN_TOAST_T = 2;                 // segundos que se muestra el nombre en el HUD
+
+let skinIndex = 0;
+let skinToast = 0;
+
+try {
+  const saved = parseInt(localStorage.getItem(SKIN_KEY), 10);
+  if (Number.isInteger(saved) && saved >= 0 && saved < SKINS.length) skinIndex = saved;
+} catch (e) { /* localStorage no disponible: skin por defecto */ }
+
 // ── Ship ──────────────────────────────────────────────────────────────────────
 class Ship {
   constructor() { this.reset(); }
@@ -190,17 +212,21 @@ class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.strokeStyle = '#fff';
+
+    // Casco según la skin activa
+    const skin = SKINS[skinIndex];
+    ctx.strokeStyle = skin.stroke;
     ctx.lineWidth   = 1.5;
     ctx.lineJoin    = 'round';
-
-    // Silueta clásica: triángulo con muesca trasera
     ctx.beginPath();
-    ctx.moveTo( 20,  0);   // nariz
-    ctx.lineTo(-12, -9);   // ala izquierda
-    ctx.lineTo( -7,  0);   // muesca trasera
-    ctx.lineTo(-12,  9);   // ala derecha
+    ctx.moveTo(skin.verts[0][0], skin.verts[0][1]);
+    for (let i = 1; i < skin.verts.length; i++)
+      ctx.lineTo(skin.verts[i][0], skin.verts[i][1]);
     ctx.closePath();
+    if (skin.fill) {
+      ctx.fillStyle = skin.fill;
+      ctx.fill();
+    }
     ctx.stroke();
 
     // Llama del propulsor
@@ -415,6 +441,14 @@ function killShip() {
 
 // ── Update ────────────────────────────────────────────────────────────────────
 function update(dt) {
+  // Cambio de skin (disponible en cualquier estado)
+  if (pressed('KeyC')) {
+    skinIndex = (skinIndex + 1) % SKINS.length;
+    skinToast = SKIN_TOAST_T;
+    try { localStorage.setItem(SKIN_KEY, String(skinIndex)); } catch (e) { /* sin persistencia */ }
+  }
+  if (skinToast > 0) skinToast -= dt;
+
   if (state === 'gameover') {
     if (pressed('Space')) initGame();
     particles.forEach(p => p.update(dt));
@@ -526,18 +560,23 @@ function update(dt) {
 
 // ── Draw ──────────────────────────────────────────────────────────────────────
 function drawLifeIcon(x, y) {
+  // Mini-nave con la silueta y color de la skin activa
+  const skin = SKINS[skinIndex];
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
-  ctx.strokeStyle = '#fff';
+  ctx.strokeStyle = skin.stroke;
   ctx.lineWidth   = 1.2;
   ctx.lineJoin    = 'round';
   ctx.beginPath();
-  ctx.moveTo( 9,  0);
-  ctx.lineTo(-6, -5);
-  ctx.lineTo(-3,  0);
-  ctx.lineTo(-6,  5);
+  ctx.moveTo(skin.verts[0][0] * 0.5, skin.verts[0][1] * 0.5);
+  for (let i = 1; i < skin.verts.length; i++)
+    ctx.lineTo(skin.verts[i][0] * 0.5, skin.verts[i][1] * 0.5);
   ctx.closePath();
+  if (skin.fill) {
+    ctx.fillStyle = skin.fill;
+    ctx.fill();
+  }
   ctx.stroke();
   ctx.restore();
 }
@@ -557,6 +596,15 @@ function drawHUD() {
 
   ctx.textAlign = 'center';
   ctx.fillText(`NIVEL ${level}`, W / 2, 26);
+
+  // Aviso del nombre de la skin al cambiarla
+  if (skinToast > 0) {
+    ctx.globalAlpha = Math.min(1, skinToast / 0.5);  // se desvanece al final
+    ctx.fillStyle   = SKINS[skinIndex].stroke;
+    ctx.fillText(SKINS[skinIndex].name, W / 2, 48);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle   = '#fff';
+  }
 
   for (let i = 0; i < lives; i++)
     drawLifeIcon(W - 16 - i * 22, 18);
