@@ -4,7 +4,7 @@ Clon del clásico arcade **Asteroids** implementado en canvas HTML5 puro, sin de
 
 ## Descripción
 
-Nave espacial en un campo de asteroides con envolvimiento de bordes (el espacio es toroidal). Destruye asteroides para sumar puntos: los grandes se parten en medianos, los medianos en pequeños. Al destruir asteroides pueden soltar el power-up de **velocidad**, que duplica la propulsión de la nave durante 5 segundos. De vez en cuando, una **estrella fugaz** dorada cruza el campo: es mucho más rápida que los asteroides y solo dura unos segundos, pero vale 500 puntos si logras destruirla.
+Nave espacial en un campo de asteroides con envolvimiento de bordes (el espacio es toroidal). Destruye asteroides para sumar puntos: los grandes se parten en medianos, los medianos en pequeños. Al destruir asteroides pueden soltar power-ups: **velocidad**, que duplica la propulsión de la nave durante 5 segundos, o **triple disparo**, que lanza 3 balas en abanico estrecho durante 5 segundos. De vez en cuando, una **estrella fugaz** dorada cruza el campo: es mucho más rápida que los asteroides y solo dura unos segundos, pero vale 500 puntos si logras destruirla.
 
 ## Tecnologías
 
@@ -39,9 +39,12 @@ Luego visita `http://localhost:3000`.
 | Pequeño        | 100    |
 | Estrella fugaz | 500    |
 
-## Power-up de velocidad
+## Power-ups
 
-Al destruir un asteroide hay una probabilidad (12%) de que suelte un ítem de velocidad (doble chevron cian que flota y gira). Recógelo tocándolo con la nave: la propulsión se duplica durante 5 segundos (llama cian y contador en el HUD). Si no lo recoges en 8 segundos, el ítem desaparece.
+Al destruir un asteroide hay una probabilidad (12%) de que suelte un ítem (a partes iguales entre los dos tipos, que flotan y giran). Recógelo tocándolo con la nave; si no lo recoges en 8 segundos, el ítem desaparece. Recoger el mismo ítem de nuevo reinicia su temporizador, y ambos efectos pueden estar activos a la vez.
+
+- **Velocidad** (doble chevron cian): la propulsión se duplica durante 5 segundos (llama cian y contador en el HUD).
+- **Triple disparo** (letra **T** verde): cada disparo lanza 3 balas en abanico estrecho durante 5 segundos (contador verde en el HUD).
 
 ## Estrella fugaz
 
@@ -53,4 +56,5 @@ Cada 8–15 segundos una estrella fugaz dorada entra cruzando desde un borde de 
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides
 - Power-up de velocidad: propulsión duplicada durante 5 segundos (llama cian y contador en el HUD)
+- Power-up de triple disparo: 3 balas en abanico durante 5 segundos (letra T verde y contador en el HUD)
 - Estrella fugaz: rápida (300 px/s) y fugaz (6 s), 500 puntos al destruirla
