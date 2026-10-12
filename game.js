@@ -62,10 +62,12 @@ const RADII  = [0, 16, 30, 50];   // por tamaño 1, 2, 3
 const SPEEDS = [0, 85, 55, 32];   // velocidad base por tamaño
 const POINTS = [0, 100, 50, 20];  // puntos por tamaño
 
-// Power-up de velocidad
-const DROP_CHANCE = 0.12;  // probabilidad de drop por asteroide destruido
-const PU_TTL      = 8;     // segundos del ítem flotando sin recoger
-const PU_DURATION = 5;     // segundos del efecto de velocidad
+// Power-ups
+const DROP_CHANCE     = 0.12;  // probabilidad de drop por asteroide destruido
+const PU_TTL          = 8;     // segundos del ítem flotando sin recoger
+const PU_DURATION     = 5;     // segundos del efecto de velocidad
+const TRIPLE_DURATION = 5;     // segundos del efecto de triple disparo
+const TRIPLE_SPREAD   = 0.12;  // rad de apertura del abanico (~7°)
 
 // Estrella fugaz
 const STAR_SPEED  = 300;   // px/s
@@ -167,6 +169,7 @@ class Ship {
     this.invincible    = 3;
     this.shootCooldown = 0;
     this.speedTimer    = 0;
+    this.tripleTimer   = 0;
     this.dead          = false;
   }
 
@@ -175,6 +178,7 @@ class Ship {
     if (this.invincible    > 0) this.invincible    -= dt;
     if (this.shootCooldown > 0) this.shootCooldown -= dt;
     if (this.speedTimer    > 0) this.speedTimer    -= dt;
+    if (this.tripleTimer   > 0) this.tripleTimer   -= dt;
 
     const ROT   = 3.5;   // rad/s
     const DRAG  = 0.987;
@@ -201,6 +205,14 @@ class Ship {
     const NOSE = 21;
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
+    // Abanico estrecho de 3 balas durante el triple disparo
+    if (this.tripleTimer > 0) {
+      return [
+        new Bullet(ox, oy, this.angle - TRIPLE_SPREAD),
+        new Bullet(ox, oy, this.angle),
+        new Bullet(ox, oy, this.angle + TRIPLE_SPREAD),
+      ];
+    }
     return [new Bullet(ox, oy, this.angle)];
   }
 
@@ -277,9 +289,10 @@ class Particle {
   }
 }
 
-// ── PowerUp (velocidad) ───────────────────────────────────────────────────────
+// ── PowerUps (velocidad / triple disparo) ─────────────────────────────────────
 class PowerUp {
-  constructor(x, y) {
+  constructor(x, y, type = 'speed') {
+    this.type = type;
     this.x = x;
     this.y = y;
     this.radius = 10;
@@ -310,13 +323,21 @@ class PowerUp {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rot);
-    ctx.strokeStyle = '#00d4ff';
     ctx.lineWidth   = 2;
     ctx.lineJoin    = 'round';
     ctx.lineCap     = 'round';
     ctx.beginPath();
-    ctx.moveTo(-6, -5); ctx.lineTo(-1, 0); ctx.lineTo(-6, 5);
-    ctx.moveTo( 1, -5); ctx.lineTo( 6, 0); ctx.lineTo( 1, 5);
+    if (this.type === 'triple') {
+      // Letra T de triple disparo
+      ctx.strokeStyle = '#7cffb2';
+      ctx.moveTo(-5, -6); ctx.lineTo( 5, -6);   // barra horizontal
+      ctx.moveTo( 0, -6); ctx.lineTo( 0,  6);   // asta vertical
+    } else {
+      // Doble chevron de velocidad
+      ctx.strokeStyle = '#00d4ff';
+      ctx.moveTo(-6, -5); ctx.lineTo(-1, 0); ctx.lineTo(-6, 5);
+      ctx.moveTo( 1, -5); ctx.lineTo( 6, 0); ctx.lineTo( 1, 5);
+    }
     ctx.stroke();
     ctx.restore();
   }
@@ -507,7 +528,8 @@ function update(dt) {
         score += POINTS[a.size];
         explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
-        if (Math.random() < DROP_CHANCE) powerups.push(new PowerUp(a.x, a.y));
+        if (Math.random() < DROP_CHANCE)
+          powerups.push(new PowerUp(a.x, a.y, Math.random() < 0.5 ? 'speed' : 'triple'));
       }
     }
   }
@@ -550,7 +572,8 @@ function update(dt) {
   for (const pu of powerups) {
     if (!pu.dead && !ship.dead && dist(ship, pu) < ship.radius + pu.radius) {
       pu.dead = true;
-      ship.speedTimer = PU_DURATION;
+      if (pu.type === 'triple') ship.tripleTimer = TRIPLE_DURATION;
+      else                      ship.speedTimer  = PU_DURATION;
     }
   }
 
@@ -588,11 +611,17 @@ function drawHUD() {
   ctx.textAlign = 'left';
   ctx.fillText(`SCORE  ${score}`, 14, 26);
 
-  if (!ship.dead && ship.speedTimer > 0) {
-    ctx.fillStyle = '#00d4ff';
-    ctx.fillText(`VELOCIDAD ${ship.speedTimer.toFixed(1)}s`, 14, 48);
-    ctx.fillStyle = '#fff';
-  }
+  // Efectos activos, apilados si hay varios
+  const efectos = [];
+  if (!ship.dead && ship.speedTimer > 0)
+    efectos.push([`VELOCIDAD ${ship.speedTimer.toFixed(1)}s`, '#00d4ff']);
+  if (!ship.dead && ship.tripleTimer > 0)
+    efectos.push([`TRIPLE ${ship.tripleTimer.toFixed(1)}s`, '#7cffb2']);
+  efectos.forEach(([texto, color], i) => {
+    ctx.fillStyle = color;
+    ctx.fillText(texto, 14, 48 + i * 22);
+  });
+  ctx.fillStyle = '#fff';
 
   ctx.textAlign = 'center';
   ctx.fillText(`NIVEL ${level}`, W / 2, 26);
