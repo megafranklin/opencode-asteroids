@@ -40,6 +40,8 @@ Luego visita `http://localhost:3000`.
 | Pequeño        | 100    |
 | Estrella fugaz | 500    |
 
+Con la skin **TITÁN** activa, todos los puntos se duplican.
+
 ## Power-ups
 
 Al destruir un asteroide hay una probabilidad (12%) de que suelte un ítem, a partes iguales entre los tres tipos. Los ítems flotan y giran; si no los recoges en 8 segundos, desaparecen. Recoger el mismo ítem de nuevo reinicia su temporizador, y los efectos pueden estar activos a la vez.
@@ -62,7 +64,7 @@ Cada 8–15 segundos una estrella fugaz dorada entra cruzando desde un borde de 
 
 ## Skins
 
-Pulsa `C` en cualquier momento (incluso tras un game over) para rotar entre las 5 skins de la nave: **CLÁSICA**, **CAZA**, **NEÓN**, **RETRO** y **CORSAIR**. Cada una cambia la silueta y el color del casco; la llama del propulsor, las balas y la jugabilidad son idénticas. Tu elección se guarda en el navegador (`localStorage`) y se restaura al recargar.
+Pulsa `C` en cualquier momento (incluso tras un game over) para rotar entre las 6 skins de la nave: **CLÁSICA**, **CAZA**, **NEÓN**, **RETRO**, **CORSAIR** y **TITÁN**. Cada una cambia la silueta y el color del casco; la llama del propulsor y las balas son idénticas. La **TITÁN** es un casco morado al doble de tamaño del original: otorga el doble de puntos por todo lo que destruyas, a cambio de ser una nave mucho más grande y difícil de esquivar. Tu elección se guarda en el navegador (`localStorage`) y se restaura al recargar.
 
 ## Características
 
@@ -73,4 +75,4 @@ Pulsa `C` en cualquier momento (incluso tras un game over) para rotar entre las 
 - Power-up de triple disparo: 3 balas en abanico durante 5 segundos (letra T verde y contador en el HUD)
 - Power-up de escudo: burbuja verde de 6 segundos que destruye asteroides y estrellas fugaces al contacto
 - Estrella fugaz: rápida (300 px/s) y fugaz (6 s), 500 puntos al destruirla
-- 5 skins de nave seleccionables con la tecla `C` (persisten entre sesiones)
+- 6 skins de nave seleccionables con la tecla `C` (persisten entre sesiones), incluida la TITÁN: morada, de doble tamaño y con el doble de puntos
