@@ -139,14 +139,16 @@ class Asteroid {
 }
 
 // ── Skins de la nave ──────────────────────────────────────────────────────────
-// Solo cambian la silueta y el color del casco (nariz hacia +x); la llama,
-// las balas y la jugabilidad son idénticas para todas.
+// Cambian la silueta y el color del casco (nariz hacia +x); la llama y las
+// balas son idénticas para todas. La TITÁN es un casco morado al doble de
+// tamaño (más difícil de esquivar) que a cambio duplica los puntos.
 const SKINS = [
   { name: 'CLÁSICA', stroke: '#fff',    fill: null,                      verts: [[20, 0], [-12, -9], [-7, 0], [-12, 9]] },
   { name: 'CAZA',    stroke: '#39ff14', fill: null,                      verts: [[24, 0], [-8, -4], [-14, -11], [-7, 0], [-14, 11], [-8, 4]] },
   { name: 'NEÓN',    stroke: '#00d4ff', fill: 'rgba(0, 212, 255, 0.15)',  verts: [[18, 0], [-12, -10], [-3, 0], [-12, 10]] },
   { name: 'RETRO',   stroke: '#ff9f1c', fill: null,                      verts: [[16, 0], [-10, -12], [-10, 12]] },
   { name: 'CORSAIR', stroke: '#ff4d6d', fill: null,                      verts: [[22, 0], [-15, -12], [-6, 0], [-15, 12]] },
+  { name: 'TITÁN',   stroke: '#b026ff', fill: 'rgba(176, 38, 255, 0.15)', verts: [[20, 0], [-12, -9], [-7, 0], [-12, 9]], scale: 2, scoreMult: 2 },
 ];
 
 const SKIN_KEY     = 'asteroids-skin';  // clave de persistencia en localStorage
@@ -160,9 +162,16 @@ try {
   if (Number.isInteger(saved) && saved >= 0 && saved < SKINS.length) skinIndex = saved;
 } catch (e) { /* localStorage no disponible: skin por defecto */ }
 
+// Tamaño relativo del casco y multiplicador de puntos de la skin activa
+const skinScale     = () => SKINS[skinIndex].scale || 1;
+const skinScoreMult = () => SKINS[skinIndex].scoreMult || 1;
+
 // ── Ship ──────────────────────────────────────────────────────────────────────
 class Ship {
   constructor() { this.reset(); }
+
+  // Radio de colisión: sigue el tamaño del casco de la skin activa
+  get radius() { return 12 * skinScale(); }
 
   reset() {
     this.x      = W / 2;
@@ -170,7 +179,6 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -210,7 +218,7 @@ class Ship {
   tryShoot() {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
-    const NOSE = 21;
+    const NOSE = 21 * skinScale();  // la bala nace en la nariz del casco activo
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
     // Abanico estrecho de 3 balas durante el triple disparo
@@ -236,7 +244,7 @@ class Ship {
       ctx.strokeStyle = SHIELD_COLOR;
       ctx.lineWidth    = 2;
       ctx.globalAlpha  = 0.75;
-      const r = SHIELD_RADIUS + Math.sin(performance.now() / 160) * 1.5;
+      const r = SHIELD_RADIUS * skinScale() + Math.sin(performance.now() / 160) * 1.5;
       ctx.beginPath();
       ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
       ctx.stroke();
@@ -249,6 +257,7 @@ class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
+    ctx.scale(skinScale(), skinScale());  // casco al tamaño de la skin activa
 
     // Casco según la skin activa
     const skin = SKINS[skinIndex];
@@ -562,7 +571,7 @@ function update(dt) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += POINTS[a.size];
+        score += POINTS[a.size] * skinScoreMult();
         explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
         if (Math.random() < DROP_CHANCE)
@@ -579,7 +588,7 @@ function update(dt) {
       if (!s.dead && !b.dead && dist(b, s) < s.radius) {
         b.dead = true;
         s.dead = true;
-        score += STAR_POINTS;
+        score += STAR_POINTS * skinScoreMult();
         explode(s.x, s.y, 20);
       }
     }
@@ -592,13 +601,13 @@ function update(dt) {
     if (ship.shieldTimer > 0) {
       // Escudo activo: destruye el peligro al contacto (sin puntos ni división)
       for (const a of asteroids) {
-        if (dist(ship, a) < SHIELD_RADIUS + a.radius * 0.82) {
+        if (dist(ship, a) < SHIELD_RADIUS * skinScale() + a.radius * 0.82) {
           a.dead = true;
           explode(a.x, a.y, a.size * 5);
         }
       }
       for (const s of stars) {
-        if (dist(ship, s) < SHIELD_RADIUS + s.radius) {
+        if (dist(ship, s) < SHIELD_RADIUS * skinScale() + s.radius) {
           s.dead = true;
           explode(s.x, s.y, 20);
         }
@@ -642,6 +651,7 @@ function update(dt) {
 function drawLifeIcon(x, y) {
   // Mini-nave con la silueta y color de la skin activa
   const skin = SKINS[skinIndex];
+  const k = 0.5 / skinScale();  // mismo tamaño de icono para toda skin
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
@@ -649,9 +659,9 @@ function drawLifeIcon(x, y) {
   ctx.lineWidth   = 1.2;
   ctx.lineJoin    = 'round';
   ctx.beginPath();
-  ctx.moveTo(skin.verts[0][0] * 0.5, skin.verts[0][1] * 0.5);
+  ctx.moveTo(skin.verts[0][0] * k, skin.verts[0][1] * k);
   for (let i = 1; i < skin.verts.length; i++)
-    ctx.lineTo(skin.verts[i][0] * 0.5, skin.verts[i][1] * 0.5);
+    ctx.lineTo(skin.verts[i][0] * k, skin.verts[i][1] * k);
   ctx.closePath();
   if (skin.fill) {
     ctx.fillStyle = skin.fill;
@@ -667,6 +677,13 @@ function drawHUD() {
 
   ctx.textAlign = 'left';
   ctx.fillText(`SCORE  ${score}`, 14, 26);
+
+  // Multiplicador de puntos de la skin activa (p. ej. TITÁN x2)
+  if (skinScoreMult() > 1) {
+    ctx.fillStyle = SKINS[skinIndex].stroke;
+    ctx.fillText(`x${skinScoreMult()}`, 14 + ctx.measureText(`SCORE  ${score}`).width + 8, 26);
+    ctx.fillStyle = '#fff';
+  }
 
   // Efectos activos, apilados si hay varios
   const efectos = [];
