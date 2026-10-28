@@ -10,24 +10,26 @@ jobs:
     if: github.event.issue.user.type != 'Bot'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      # Mismo esquema que opencode.yml: el token de la GitHub App de OpenCode
+      # (intercambiado por OIDC) es quien aporta la autenticación real.
+      id-token: write
+      contents: write
+      pull-requests: write
       issues: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
-          # Sin credenciales de git: el triaje no debe commitear ni pushear nada
+          # Sin credenciales de git del runner: el triaje no debe commitear ni pushear nada
           persist-credentials: false
 
       - name: Triaje del issue con OpenCode
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: opencode-go/glm-5.2
-          use_github_token: true
           prompt: |
             Eres el bot de triaje de issues del repositorio "Asteroids" (clon del
             clásico Asteroids en HTML5 Canvas + JavaScript vanilla, sin dependencias;
@@ -35,28 +37,40 @@ jobs:
             del repo para contexto.
 
             Acaba de abrirse el issue #${{ github.event.issue.number }} en
-            ${{ github.repository }}. Tu única misión es el TRIAJE de ese issue:
-            clasificarlo, etiquetarlo, formatearlo y comentar. NO lo implementes.
+            ${{ github.repository }}. El contenido del issue (título, cuerpo, autor,
+            estado y comentarios) ya está en tu contexto como datos (bloque
+            <issue>): úsalo directamente. Tu única misión es el TRIAJE de ese
+            issue: clasificarlo, etiquetarlo, formatearlo y comentar. NO lo
+            implementes.
 
             PROHIBIDO: modificar código, crear branches, hacer commits, abrir PRs,
-            cerrar el issue, cambiar su título, responder preguntas técnicas al autor.
+            cerrar el issue, cambiar su título, responder preguntas técnicas al
+            autor. Este issue no debe generar cambios de código, así que no debe
+            haber push ni PR automático al final.
 
-            Ejecuta EXACTAMENTE estos cinco pasos:
+            Ejecuta EXACTAMENTE estos pasos:
 
-            PASO 1 — LEE el issue completo:
-              gh issue view ${{ github.event.issue.number }} --repo ${{ github.repository }} --json number,title,body,author,labels
+            PASO 0 — AUTENTICA gh (una sola vez, antes de cualquier comando gh):
+              export GH_TOKEN="$(git config --local --get http.https://github.com/.extraheader | sed 's/^AUTHORIZATION: basic //' | base64 -d | cut -d':' -f2)"
+              Ese es el token de la GitHub App de OpenCode que la infraestructura
+              deja configurado para git. Úsalo solo a través de esa variable; no lo
+              imprimas, no lo menciones ni lo incluyas en tu respuesta. Si la
+              extracción falla o queda vacía, detente y reporta el error en tu
+              respuesta final.
 
-            PASO 2 — CLASIFICA el issue:
+            PASO 1 — CLASIFICA el issue a partir del bloque <issue> de tu contexto
+            (solo si no lo tuvieras, ejecuta:
+            gh issue view ${{ github.event.issue.number }} --repo ${{ github.repository }} --json title,body,author,labels):
               - Tipo (elige exactamente una): bug | enhancement | documentation | question
               - Área (elige una o dos): nave | power-ups | estrella-fugaz | gameplay | puntuacion | hud | controles | render | infra
 
-            PASO 3 — APLICA ETIQUETAS (solo de estas listas; no inventes ni crees nuevas):
+            PASO 2 — APLICA ETIQUETAS (solo de estas listas; no inventes ni crees nuevas):
               gh issue edit ${{ github.event.issue.number }} --repo ${{ github.repository }} --add-label "bug" --add-label "nave"
               - Tipo: bug, enhancement, documentation, question
               - Área: nave, power-ups, estrella-fugaz, gameplay, puntuacion, hud, controles, render, infra
               - Extra (solo si aplican con claridad): good first issue, help wanted, accessibility
 
-            PASO 4 — REFORMATEA EL CUERPO del issue:
+            PASO 3 — REFORMATEA EL CUERPO del issue:
               gh issue edit ${{ github.event.issue.number }} --repo ${{ github.repository }} --body-file <archivo>
 
               REGLA DE ORO: el texto del autor se conserva TAL CUAL lo escribió:
@@ -99,9 +113,9 @@ jobs:
               - Si el cuerpo original está vacío, escribe dentro del details:
                 "(El autor no añadió descripción.)"
               - Si el cuerpo ya contiene el marcador "triaje-bot", NO lo reformatees
-                (ya fue triado): salta directo al PASO 5.
+                (ya fue triado): salta directo al PASO 4.
 
-            PASO 5 — PUBLICA UN COMENTARIO breve en el issue:
+            PASO 4 — PUBLICA UN COMENTARIO breve en el issue:
               gh issue comment ${{ github.event.issue.number }} --repo ${{ github.repository }} --body-file <archivo>
               El comentario debe incluir: clasificación (tipo y área), etiquetas
               aplicadas, archivos donde conviene empezar a mirar y el recordatorio
